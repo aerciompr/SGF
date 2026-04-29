@@ -24,6 +24,7 @@ router.put('/youtube', requirePerfil('admin', 'recepcao'), async (req, res) => {
        ON CONFLICT (chave) DO UPDATE SET valor = $1`,
       [url || '']
     );
+    req.app.get('io').emit('youtube_update', { url: url || '' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Erro interno' });

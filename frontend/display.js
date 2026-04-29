@@ -88,9 +88,41 @@
         playlist: embedUrl.match(/embed\/([^?]+)/)?.[1] || '',
       },
       events: {
-        onReady: (e) => { e.target.playVideo(); },
+        onReady: (e) => { 
+           e.target.playVideo(); 
+           const overlay = document.getElementById('start-audio-overlay');
+           if (!overlay || overlay.hidden) {
+              e.target.unMute();
+              e.target.setVolume(100);
+           }
+        },
       }
     });
+  }
+
+  function updateYouTubeUrl(url) {
+    const container = $('.youtube-fullscreen');
+    if (!url) {
+      if (container) container.hidden = true;
+      els.waitingState.hidden = false;
+      if (ytPlayer && ytPlayer.destroy) {
+          ytPlayer.destroy();
+          ytPlayer = null;
+      }
+      return;
+    }
+    
+    const embedUrl = getEmbedUrl(url);
+    if (!embedUrl) return;
+
+    if (container) container.hidden = false;
+    els.waitingState.hidden = true;
+
+    if (ytPlayer && ytPlayer.destroy) {
+        ytPlayer.destroy();
+        ytPlayer = null;
+    }
+    createPlayer(embedUrl);
   }
 
   // ---- Display Call ----
@@ -271,6 +303,10 @@
            const msg = new SpeechSynthesisUtterance("");
            speechSynthesis.speak(msg);
         }
+        if (ytPlayer && ytPlayer.unMute) {
+           ytPlayer.unMute();
+           ytPlayer.setVolume(100);
+        }
       });
     }
 
@@ -279,6 +315,9 @@
       SGF.onSocketEvent('update_historico', pollForUpdates);
       SGF.onSocketEvent('chamar_novamente', (data) => {
         showCall(data, true); // true = recall, plays ding-dong only
+      });
+      SGF.onSocketEvent('youtube_update', (data) => {
+        updateYouTubeUrl(data.url);
       });
     } else {
       pollForUpdates();
