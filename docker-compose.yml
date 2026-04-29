@@ -10,6 +10,8 @@ services:
       POSTGRES_PASSWORD: sgf123
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - jfal_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sgf -d sgf_jfal"]
       interval: 5s
@@ -21,9 +23,13 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     restart: unless-stopped
+    networks:
+      - jfal_net
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "3000:3000"
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -33,15 +39,9 @@ services:
       JWT_SECRET: sgf-jfal-secret-mude-em-producao
       PORT: 3000
 
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "8080:80"
+networks:
+  jfal_net:
+    external: true
 
 volumes:
   pgdata:
