@@ -23,6 +23,8 @@
     historyTicker: $('#history-ticker'),
   };
 
+  els.currentCall.style.display = 'none';
+
   let ytPlayer = null;
   let currentCallData = null;
   let callTimeout = null;
@@ -104,7 +106,7 @@
     const container = $('.youtube-fullscreen');
     if (!url) {
       if (container) container.hidden = true;
-      els.waitingState.hidden = false;
+      els.waitingState.style.display = 'block';
       if (ytPlayer && ytPlayer.destroy) {
           ytPlayer.destroy();
           ytPlayer = null;
@@ -116,7 +118,7 @@
     if (!embedUrl) return;
 
     if (container) container.hidden = false;
-    els.waitingState.hidden = true;
+    els.waitingState.style.display = 'none';
 
     if (ytPlayer && ytPlayer.destroy) {
         ytPlayer.destroy();
@@ -128,8 +130,8 @@
   // ---- Display Call ----
   function showCall(data, isRecall = false) {
     currentCallData = data;
-    els.waitingState.hidden = true;
-    els.currentCall.hidden = false;
+    els.waitingState.style.display = 'none';
+    els.currentCall.style.display = 'block';
 
     // HIDE YOUTUBE VISUALLY DURING CALL
     const container = $('.youtube-fullscreen');
@@ -160,12 +162,12 @@
 
   function hideCall() {
     currentCallData = null;
-    els.currentCall.hidden = true;
+    els.currentCall.style.display = 'none';
     // Show YouTube if available, otherwise show waiting state
     const container = $('.youtube-fullscreen');
     if (ytPlayer) {
       if (container) container.hidden = false;
-      els.waitingState.hidden = true;
+      els.waitingState.style.display = 'none';
       if (ytPlayer.unMute) {
         const overlay = document.getElementById('start-audio-overlay');
         if (!overlay || overlay.hidden) {
@@ -173,7 +175,7 @@
         }
       }
     } else {
-      els.waitingState.hidden = false;
+      els.waitingState.style.display = 'block';
     }
   }
 
