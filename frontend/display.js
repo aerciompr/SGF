@@ -131,6 +131,10 @@
     els.waitingState.hidden = true;
     els.currentCall.hidden = false;
 
+    // HIDE YOUTUBE VISUALLY DURING CALL
+    const container = $('.youtube-fullscreen');
+    if (container) container.hidden = true;
+
     const tipoChamada = data.tipo || 'pericia';
     els.callTypeBadge.textContent = tipoChamada === 'pericia' ? 'Perícia' :
       tipoChamada === 'audiencia_parte' ? 'Audiência - Parte' : 'Audiência - Testemunha';
@@ -159,9 +163,15 @@
     els.currentCall.hidden = true;
     // Show YouTube if available, otherwise show waiting state
     const container = $('.youtube-fullscreen');
-    if (container && !container.hidden && ytPlayer) {
+    if (ytPlayer) {
+      if (container) container.hidden = false;
       els.waitingState.hidden = true;
-      if (ytPlayer.unMute) ytPlayer.unMute();
+      if (ytPlayer.unMute) {
+        const overlay = document.getElementById('start-audio-overlay');
+        if (!overlay || overlay.hidden) {
+          ytPlayer.unMute();
+        }
+      }
     } else {
       els.waitingState.hidden = false;
     }
