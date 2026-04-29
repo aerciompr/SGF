@@ -195,21 +195,28 @@ router.put('/pessoas/:tipo/:id/chamar', requirePerfil('conciliador'), async (req
     const { sala, processo } = req.body;
     const table = tipo === 'testemunha' ? 'testemunhas' : 'partes';
 
+    const check = await db.query(`SELECT status, nome FROM ${table} WHERE id = $1`, [id]);
+    if (check.rows.length === 0) return res.status(404).json({ error: 'Não encontrado' });
+    const isAlreadyChamado = check.rows[0].status === 'chamado';
+
     const { rows } = await db.query(
       `UPDATE ${table} SET status = 'chamado' WHERE id = $1 RETURNING *`,
       [id]
     );
-    if (rows.length === 0) return res.status(404).json({ error: 'Não encontrado' });
 
-    // Add to history
     const tipoChamada = tipo === 'testemunha' ? 'audiencia_testemunha' : 'audiencia_parte';
-    await db.query(
-      'INSERT INTO historico_chamadas (nome, sala, tipo, processo) VALUES ($1, $2, $3, $4)',
-      [rows[0].nome, sala || '', tipoChamada, processo || '']
-    );
+
+    if (!isAlreadyChamado) {
+      await db.query(
+        'INSERT INTO historico_chamadas (nome, sala, tipo, processo) VALUES ($1, $2, $3, $4)',
+        [rows[0].nome, sala || '', tipoChamada, processo || '']
+      );
+      emitHistorico(req);
+    } else {
+      req.app.get('io').emit('chamar_novamente', { nome: rows[0].nome, sala: sala || '', tipo: tipoChamada, processo: processo || '' });
+    }
 
     emitUpdate(req);
-    emitHistorico(req);
     res.json(rows[0]);
   } catch (err) {
     console.error('Chamar pessoa error:', err);

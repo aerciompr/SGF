@@ -82,21 +82,28 @@ router.put('/:id/chamar', requirePerfil('perito'), async (req, res) => {
     const { sala } = req.body;
     if (!sala) return res.status(400).json({ error: 'Sala é obrigatória' });
 
+    // Verify current status to decide whether to insert in history
+    const check = await db.query('SELECT status, nome FROM periciados WHERE id = $1', [req.params.id]);
+    if (check.rows.length === 0) return res.status(404).json({ error: 'Não encontrado' });
+    const isAlreadyChamado = check.rows[0].status === 'chamado';
+
     const { rows } = await db.query(
       `UPDATE periciados SET status = 'chamado', sala_atendimento = $1, chamado_at = NOW()
        WHERE id = $2 RETURNING *`,
       [sala, req.params.id]
     );
-    if (rows.length === 0) return res.status(404).json({ error: 'Não encontrado' });
 
-    // Add to history
-    await db.query(
-      `INSERT INTO historico_chamadas (nome, sala, tipo) VALUES ($1, $2, 'pericia')`,
-      [rows[0].nome, sala]
-    );
+    if (!isAlreadyChamado) {
+      await db.query(
+        `INSERT INTO historico_chamadas (nome, sala, tipo) VALUES ($1, $2, 'pericia')`,
+        [rows[0].nome, sala]
+      );
+      emitHistorico(req);
+    } else {
+      req.app.get('io').emit('chamar_novamente', { nome: rows[0].nome, sala, tipo: 'pericia' });
+    }
 
     emitUpdate(req);
-    emitHistorico(req);
     res.json(rows[0]);
   } catch (err) {
     console.error('Chamar error:', err);

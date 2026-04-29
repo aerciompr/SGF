@@ -26,7 +26,8 @@
   let ytPlayer = null;
   let currentCallData = null;
   let callTimeout = null;
-  let lastHistoricoId = 0;
+  let lastHistoricoId = -1; // initialized to -1 to catch the first call if starting from empty db
+  let isFirstFetch = true;
 
   // ---- Clock ----
   function updateClock() {
@@ -93,7 +94,7 @@
   }
 
   // ---- Display Call ----
-  function showCall(data) {
+  function showCall(data, isRecall = false) {
     currentCallData = data;
     els.waitingState.hidden = true;
     els.currentCall.hidden = false;
@@ -107,8 +108,12 @@
     // Mute YouTube while showing call
     if (ytPlayer && ytPlayer.mute) ytPlayer.mute();
 
-    // Speak the name
-    speakCall(data.nome, data.sala);
+    playDingDong(() => {
+      // Only speak if it is not a recall
+      if (!isRecall) {
+        speakCall(data.nome, data.sala);
+      }
+    });
 
     // Hide after 15 seconds
     clearTimeout(callTimeout);
@@ -140,6 +145,49 @@
     speechSynthesis.speak(msg);
   }
 
+  function playDingDong(callback) {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) {
+         if (callback) callback();
+         return;
+      }
+      const ctx = new AudioContext();
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc2.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+      osc2.frequency.setValueAtTime(523.25, ctx.currentTime + 0.5); // C5
+
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+
+      osc1.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.5);
+
+      setTimeout(() => {
+        osc2.connect(gainNode);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + 0.5);
+        gainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.55);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+        osc2.start(ctx.currentTime + 0.5);
+        osc2.stop(ctx.currentTime + 1.5);
+      }, 500);
+
+      setTimeout(() => {
+        if (callback) callback();
+      }, 1500);
+    } catch(e) {
+      if (callback) callback();
+    }
+  }
+
   // ---- History Ticker ----
   function updateTicker(historico) {
     els.historyTicker.innerHTML = '';
@@ -167,14 +215,15 @@
         const latest = historico[0];
         const latestId = latest.id;
 
-        if (latestId > lastHistoricoId && lastHistoricoId > 0) {
+        if (!isFirstFetch && latestId > lastHistoricoId) {
           // New call detected!
-          showCall(latest);
+          showCall(latest, false);
         }
 
         lastHistoricoId = latestId;
         updateTicker(historico);
       }
+      isFirstFetch = false;
     } catch (e) {
       // Silently fail - display should never crash
     }
@@ -213,9 +262,24 @@
     setInterval(updateClock, 1000);
     loadYouTube();
 
+    const overlay = document.getElementById('start-audio-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', function() {
+        this.hidden = true;
+        // unlock audio
+        if ('speechSynthesis' in window) {
+           const msg = new SpeechSynthesisUtterance("");
+           speechSynthesis.speak(msg);
+        }
+      });
+    }
+
     // Use WebSocket instead of polling
     if (typeof SGF !== 'undefined' && SGF.onSocketEvent) {
       SGF.onSocketEvent('update_historico', pollForUpdates);
+      SGF.onSocketEvent('chamar_novamente', (data) => {
+        showCall(data, true); // true = recall, plays ding-dong only
+      });
     } else {
       pollForUpdates();
       setInterval(pollForUpdates, 3000);
