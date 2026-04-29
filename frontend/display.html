@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SGF-JFAL - Painel de Chamada (Display TV)">
+  <title>SGF-JFAL - Painel de Chamada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="display-style.css">
+</head>
+<body class="display-screen">
+
+  <!-- Background animated particles -->
+  <div class="particles" id="particles"></div>
+
+  <!-- Header bar -->
+  <header class="display-header" id="display-header">
+    <div class="display-logo">
+      <img src="logo-jfal-dark.png" alt="JFAL" class="display-logo-img">
+    </div>
+    <div class="display-title">
+      <h1>Painel de Chamada</h1>
+      <span class="display-subtitle">Sistema de Gerenciamento de Filas</span>
+    </div>
+    <div class="display-clock" id="display-clock"></div>
+  </header>
+
+  <!-- Main content area -->
+  <main class="display-main" id="display-main">
+    <!-- Current Call (hidden by default, shown on top when calling) -->
+    <section class="current-call" id="current-call" hidden>
+      <div class="call-attention">
+        <div class="call-bell">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+      </div>
+      <div class="call-info">
+        <span class="call-type-badge" id="call-type-badge">PERÍCIA</span>
+        <span class="call-label">CHAMANDO</span>
+        <h2 class="call-name" id="call-name"></h2>
+        <div class="call-room-container">
+          <span class="call-room-label">Dirija-se à</span>
+          <span class="call-room" id="call-room"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- YouTube video - FULLSCREEN behind everything, plays with sound -->
+    <section class="youtube-fullscreen" id="youtube-container" hidden>
+      <div id="youtube-player"></div>
+    </section>
+
+    <!-- Waiting state (shown when idle and no video) -->
+    <section class="waiting-state" id="waiting-state">
+      <div class="waiting-animation">
+        <div class="waiting-circles">
+          <div class="circle c1"></div>
+          <div class="circle c2"></div>
+          <div class="circle c3"></div>
+        </div>
+      </div>
+      <h2>Aguarde sua chamada</h2>
+      <p>Fique atento ao painel</p>
+    </section>
+  </main>
+
+  <!-- History bar at the bottom -->
+  <footer class="display-footer" id="display-footer">
+    <div class="footer-left">
+      <div class="footer-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Últimas chamadas
+      </div>
+    </div>
+    <div class="history-ticker" id="history-ticker">
+      <!-- Last calls rendered here -->
+    </div>
+    <div class="footer-right">
+      <span class="footer-credit">Justiça Federal em Alagoas - DTI</span>
+    </div>
+  </footer>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="shared.js"></script>
+  <script src="display.js"></script>
+</body>
+</html>

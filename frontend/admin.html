@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SGF-JFAL - Painel de Administração">
+  <title>SGF-JFAL - Administração</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="module-page">
+
+  <!-- Header -->
+  <header class="header" id="app-header" hidden>
+    <div class="header-left">
+      <div class="logo">
+        <img src="logo-jfal.png" alt="JFAL" class="logo-img">
+        <div class="logo-text">
+          <h1>SGF - Administração</h1>
+          <span class="logo-subtitle">Sistema de Gerenciamento de Filas</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="user-label" style="font-size:0.78rem;color:var(--text-muted);"></span>
+      <button class="btn btn-outline btn-sm" id="btn-logout" title="Sair">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sair
+      </button>
+      <a href="index.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Voltar ao Menu
+      </a>
+      <div class="clock" id="page-clock"></div>
+    </div>
+  </header>
+
+  <!-- Login Screen -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="logo-jfal.png" alt="JFAL" style="height:60px;">
+      </div>
+      <h2>SGF - Administração</h2>
+      <p style="color:var(--text-muted);margin-bottom:24px;font-size:0.85rem;">Acesso restrito. Informe suas credenciais.</p>
+      <form id="form-login" autocomplete="off">
+        <div class="form-group">
+          <label for="login-usuario">Usuário</label>
+          <input type="text" id="login-usuario" placeholder="Usuário" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="login-senha">Senha</label>
+          <input type="password" id="login-senha" placeholder="Senha" required>
+        </div>
+        <div id="login-error" style="color:var(--danger-400);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <button type="submit" class="btn btn-primary btn-full">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Entrar
+        </button>
+      </form>
+      <a href="index.html" style="display:inline-block;margin-top:16px;color:var(--text-muted);font-size:0.8rem;text-decoration:none;">← Voltar ao Menu</a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="module-main two-col" id="app-main" style="max-width:1200px;" hidden>
+
+    <!-- Left: Salas de Perícia -->
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <section class="card" id="card-salas-pericia">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Salas de Perícia
+          </h2>
+        </div>
+        <div class="card-body">
+          <form id="form-sala-pericia" autocomplete="off">
+            <div class="form-row">
+              <input type="text" id="input-sala-pericia-name" placeholder="Nome da sala" required>
+              <input type="text" id="input-sala-pericia-andar" placeholder="Andar" style="max-width:90px;">
+              <button type="submit" class="btn btn-secondary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+          </form>
+          <ul class="room-list" id="lista-salas-pericia" style="margin-top:12px;"></ul>
+        </div>
+      </section>
+
+      <section class="card" id="card-salas-audiencia">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Salas de Audiência
+          </h2>
+        </div>
+        <div class="card-body">
+          <form id="form-sala-audiencia" autocomplete="off">
+            <div class="form-row">
+              <input type="text" id="input-sala-audiencia-name" placeholder="Nome da sala" required>
+              <input type="text" id="input-sala-audiencia-andar" placeholder="Andar" style="max-width:90px;">
+              <button type="submit" class="btn btn-secondary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+          </form>
+          <ul class="room-list" id="lista-salas-audiencia" style="margin-top:12px;"></ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right: YouTube Config + Stats -->
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <section class="card" id="card-youtube">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            Vídeo YouTube (Display TV)
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="input-youtube-url">Link do Vídeo YouTube</label>
+            <input type="url" id="input-youtube-url" placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+          <div id="youtube-preview" style="margin-bottom:16px;border-radius:var(--radius-sm);overflow:hidden;background:#000;aspect-ratio:16/9;display:none;">
+            <iframe id="youtube-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="display:block;"></iframe>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" id="btn-save-youtube">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Salvar
+            </button>
+            <button class="btn btn-outline btn-sm" id="btn-clear-youtube">Limpar</button>
+          </div>
+          <p style="font-size:0.72rem;color:var(--text-muted);margin-top:12px;">O vídeo será exibido no Display TV quando não houver chamada ativa.</p>
+        </div>
+      </section>
+
+      <section class="card" id="card-usuarios">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Gerenciar Usuários
+          </h2>
+        </div>
+        <div class="card-body">
+          <form id="form-novo-usuario" autocomplete="off" style="margin-bottom:16px;">
+            <div class="form-row" style="margin-bottom:8px;">
+              <input type="text" id="input-usuario-nome" placeholder="Nome completo" style="flex:2;" required>
+              <select id="select-usuario-perfil" style="flex:1;">
+                <option value="admin">Administrador</option>
+                <option value="recepcao">Recepção</option>
+                <option value="perito" selected>Perito</option>
+                <option value="conciliador">Conciliador</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <input type="text" id="input-usuario-login" placeholder="Login" style="flex:1;" required>
+              <input type="password" id="input-usuario-senha" placeholder="Senha" style="flex:1;" required>
+              <button type="submit" class="btn btn-primary btn-sm" title="Adicionar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar
+              </button>
+            </div>
+          </form>
+          <div class="section-divider"><span>Usuários Cadastrados</span></div>
+          <div id="lista-usuarios" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="card-actions">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Ações
+          </h2>
+        </div>
+        <div class="card-body">
+          <button class="btn btn-outline btn-sm btn-full" id="btn-limpar-historico" style="margin-bottom:8px;">Limpar Histórico de Chamadas</button>
+          <button class="btn btn-outline btn-sm btn-full" id="btn-limpar-periciados" style="margin-bottom:8px;">Limpar Lista de Periciados</button>
+          <button class="btn btn-danger btn-sm btn-full" id="btn-reset-tudo">Resetar Todos os Dados</button>
+        </div>
+      </section>
+
+      <section class="card" id="card-stats">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Estatísticas
+          </h2>
+        </div>
+        <div class="card-body" id="stats-body">
+          <!-- rendered by JS -->
+        </div>
+      </section>
+
+      <!-- Auditoria Logs -->
+      <section class="card" id="card-auditoria" style="margin-top: 16px;">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Logs de Auditoria
+          </h2>
+          <button class="btn btn-primary btn-sm" id="btn-export-auditoria">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+        <div class="card-body scroll" id="auditoria-body" style="max-height: 250px;">
+          <!-- rendered by JS -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer" id="app-footer" hidden>
+    <img src="logo-jfal.png" alt="JFAL" class="footer-logo">
+    <span>Desenvolvido por Justiça Federal em Alagoas - DTI</span>
+  </footer>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal Editar Usuário -->
+  <div class="modal-overlay" id="modal-edit-usuario">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Editar Usuário</h3>
+        <button class="btn-icon" id="btn-close-modal-edit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-edit-usuario">
+        <input type="hidden" id="edit-usuario-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-usuario-nome">Nome</label>
+            <input type="text" id="edit-usuario-nome" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-usuario-login">Login</label>
+            <input type="text" id="edit-usuario-login" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-usuario-senha">Nova Senha <small style="color:var(--text-muted);">(deixe vazio para manter)</small></label>
+            <input type="password" id="edit-usuario-senha" placeholder="Nova senha (opcional)">
+          </div>
+          <div class="form-group">
+            <label for="select-edit-perfil">Perfil</label>
+            <select id="select-edit-perfil">
+              <option value="admin">Administrador</option>
+              <option value="recepcao">Recepção</option>
+              <option value="perito">Perito</option>
+              <option value="conciliador">Conciliador</option>
+            </select>
+          </div>
+          <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="check-edit-ativo" checked>
+            <label for="check-edit-ativo" style="margin:0;cursor:pointer;">Usuário ativo</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-cancel-modal-edit">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="shared.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

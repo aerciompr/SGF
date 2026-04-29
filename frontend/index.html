@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de Gerenciamento de Filas - Justiça Federal em Alagoas">
+  <title>SGF - Justiça Federal em Alagoas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="hub-page">
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header-left">
+      <div class="logo">
+        <img src="logo-jfal.png" alt="JFAL" class="logo-img">
+        <div class="logo-text">
+          <h1>SGF</h1>
+          <span class="logo-subtitle">Sistema de Gerenciamento de Filas</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="hub-clock"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="hub-main">
+    <div class="hub-welcome">
+      <h2>Bem-vindo ao Sistema de Gerenciamento de Filas</h2>
+      <p>Selecione o módulo que deseja acessar</p>
+    </div>
+
+    <div class="hub-grid">
+      <!-- Admin -->
+      <a href="admin.html" class="hub-card" id="card-admin">
+        <div class="hub-card-icon admin-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <h3>Administração</h3>
+        <p>Gerenciar salas de perícia e audiência, configurar display e vídeo YouTube</p>
+      </a>
+
+      <!-- Recepção -->
+      <a href="recepcao.html" class="hub-card" id="card-recepcao">
+        <div class="hub-card-icon recepcao-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <polyline points="17 11 19 13 23 9"/>
+          </svg>
+        </div>
+        <h3>Recepção</h3>
+        <p>Registrar e confirmar chegada de periciados ao prédio</p>
+      </a>
+
+      <!-- Perito -->
+      <a href="perito.html" class="hub-card" id="card-perito">
+        <div class="hub-card-icon perito-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </div>
+        <h3>Perito</h3>
+        <p>Chamar periciados para as salas de perícia</p>
+      </a>
+
+      <!-- Conciliador -->
+      <a href="conciliador.html" class="hub-card" id="card-conciliador">
+        <div class="hub-card-icon conciliador-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h3>Conciliador</h3>
+        <p>Gerenciar audiências, chamar partes e testemunhas</p>
+      </a>
+
+      <!-- Display -->
+      <a href="display.html" class="hub-card hub-card-wide" id="card-display" target="_blank">
+        <div class="hub-card-icon display-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+        <h3>Painel de Chamada (Display TV)</h3>
+        <p>Tela para exibição na TV da sala de espera — mostra chamadas e vídeo YouTube</p>
+      </a>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <img src="logo-jfal.png" alt="JFAL" class="footer-logo">
+    <span>Desenvolvido por Justiça Federal em Alagoas - DTI</span>
+  </footer>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // Clock
+    const clockEl = document.getElementById('hub-clock');
+    function updateClock() {
+      const now = new Date();
+      clockEl.textContent = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SGF-JFAL - Tela do Perito">
+  <title>SGF-JFAL - Perito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="module-page">
+
+  <header class="header" id="app-header" hidden>
+    <div class="header-left">
+      <div class="logo">
+        <img src="logo-jfal.png" alt="JFAL" class="logo-img">
+        <div class="logo-text">
+          <h1>SGF - Perito</h1>
+          <span class="logo-subtitle">Chamada de Periciados</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="user-label" style="font-size:0.78rem;color:var(--text-muted);"></span>
+      <button class="btn btn-outline btn-sm" id="btn-logout" title="Sair">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sair
+      </button>
+      <a href="index.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Menu
+      </a>
+      <button class="btn btn-outline btn-sm" id="btn-open-display" title="Abrir Display TV">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Display TV
+      </button>
+      <div class="clock" id="page-clock"></div>
+    </div>
+  </header>
+
+  <!-- Login Screen -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="logo-jfal.png" alt="JFAL" style="height:60px;">
+      </div>
+      <h2>SGF - Perito</h2>
+      <p style="color:var(--text-muted);margin-bottom:24px;font-size:0.85rem;">Acesso restrito. Informe suas credenciais.</p>
+      <form id="form-login" autocomplete="off">
+        <div class="form-group">
+          <label for="login-usuario">Usuário</label>
+          <input type="text" id="login-usuario" placeholder="Usuário" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="login-senha">Senha</label>
+          <input type="password" id="login-senha" placeholder="Senha" required>
+        </div>
+        <div id="login-error" style="color:var(--danger-400);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <button type="submit" class="btn btn-primary btn-full">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Entrar
+        </button>
+      </form>
+      <a href="index.html" style="display:inline-block;margin-top:16px;color:var(--text-muted);font-size:0.8rem;text-decoration:none;">← Voltar ao Menu</a>
+    </div>
+  </div>
+
+  <main class="module-main three-col" id="app-main" hidden>
+    <!-- Left: Selecionar sala -->
+    <div>
+      <section class="card">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Sala Atual
+          </h2>
+        </div>
+        <div class="card-body">
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Sua Sala</div>
+            <div id="sala-atual-label" style="font-size:1.4rem;font-weight:800;color:var(--text-muted);">Nenhuma selecionada</div>
+          </div>
+          <div class="form-group">
+            <label for="select-sala">Selecione sua sala</label>
+            <select id="select-sala">
+              <option value="">-- Selecionar --</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm btn-full" id="btn-trocar-sala" style="display:none;margin-top:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+            Trocar Sala
+          </button>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:12px;">Selecione a sala de perícia onde você está atendendo. Ao chamar um periciado, ele será direcionado para esta sala.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Center: Fila -->
+    <div>
+      <section class="card" style="display:flex;flex-direction:column;min-height:0;">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Fila de Periciados
+            <span class="queue-count" id="fila-count">0</span>
+          </h2>
+          <button class="btn btn-call btn-sm" id="btn-chamar-proximo" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            Chamar Próximo
+          </button>
+        </div>
+        <div class="card-body scroll" id="fila-periciados">
+          <!-- rendered by JS -->
+        </div>
+      </section>
+    </div>
+
+    <!-- Right: Histórico -->
+    <div>
+      <section class="card">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Histórico
+          </h2>
+        </div>
+        <div class="card-body scroll" id="historico-lista">
+          <!-- rendered by JS -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer" id="app-footer" hidden>
+    <img src="logo-jfal.png" alt="JFAL" class="footer-logo">
+    <span>Desenvolvido por Justiça Federal em Alagoas - DTI</span>
+  </footer>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="shared.js"></script>
+  <script src="perito.js"></script>
+</body>
+</html>
