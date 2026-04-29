@@ -20,9 +20,14 @@ app.set('io', io);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // disable CSP if it blocks static frontend assets
+}));
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Rate Limiting for Auth
 const authLimiter = rateLimit({
@@ -207,10 +212,11 @@ async function initDatabase() {
   } catch (err) {
     console.error('✗ Database init error:', err.message);
     if (process.env.DB_HOST) {
-      // Retry for PostgreSQL (waiting for container to start)
-      setTimeout(initDatabase, 3000);
+      console.log('Retrying in 5 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return initDatabase(); // await the retry recursively
     }
-    return;
+    throw err;
   }
 }
 
