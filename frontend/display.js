@@ -151,11 +151,11 @@
       }
     });
 
-    // Hide after 15 seconds
+    // Hide after 8 seconds
     clearTimeout(callTimeout);
     callTimeout = setTimeout(() => {
       hideCall();
-    }, 15000);
+    }, 8000);
   }
 
   function hideCall() {
@@ -320,6 +320,9 @@
       });
     }
 
+    // Always load initial history on boot
+    pollForUpdates();
+
     // Use WebSocket instead of polling
     if (typeof SGF !== 'undefined' && SGF.onSocketEvent) {
       SGF.onSocketEvent('update_historico', pollForUpdates);
@@ -330,7 +333,6 @@
         updateYouTubeUrl(data.url);
       });
     } else {
-      pollForUpdates();
       setInterval(pollForUpdates, 3000);
     }
   }
