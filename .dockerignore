@@ -1,6 +1,13 @@
 .git
 .gitignore
-README.md
 *.md
 node_modules
 backend/node_modules
+backend/sgf_jfal.db
+backend/sgf_jfal.db-wal
+backend/sgf_jfal.db-shm
+.dockerignore
+.agent
+.vscode
+.env
+*.log

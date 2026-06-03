@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
+    container_name: sgf-jfal-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: sgf_jfal
@@ -22,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    container_name: sgf-jfal-backend
     restart: unless-stopped
     networks:
       - jfal_net
@@ -41,7 +41,7 @@ services:
 
 networks:
   jfal_net:
-    external: true
+    driver: bridge
 
 volumes:
   pgdata:
