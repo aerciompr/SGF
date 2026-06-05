@@ -21,13 +21,22 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet({
-  contentSecurityPolicy: false, // disable CSP if it blocks static frontend assets
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://s.ytimg.com"],
+      frameSrc: ["'self'", "https://www.youtube.com"],
+      imgSrc: ["'self'", "data:", "https://i.ytimg.com"]
+    }
+  }
 }));
 app.use(cors());
 app.use(express.json());
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
+
+app.set('trust proxy', 1);
 
 // Rate Limiting for Auth
 const authLimiter = rateLimit({
@@ -44,6 +53,7 @@ app.use('/api/periciados', require('./routes/periciados'));
 app.use('/api/pautas', require('./routes/pautas'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/audit', require('./routes/audit'));
 
 // Authenticated route: list peritos (for recepcao dropdown)
 const { authMiddleware } = require('./middleware/auth');
@@ -63,7 +73,7 @@ app.get('/api/peritos', authMiddleware, async (req, res) => {
 // Public routes (no auth - for display screen)
 app.get('/api/public/historico', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM historico_chamadas ORDER BY chamado_at DESC LIMIT 50');
+    const { rows } = await db.query("SELECT * FROM historico_chamadas WHERE date(chamado_at, 'localtime') = date('now', 'localtime') ORDER BY chamado_at DESC LIMIT 50");
     res.json(rows);
   } catch (err) { res.status(500).json({ error: 'Erro interno' }); }
 });
@@ -75,9 +85,28 @@ app.get('/api/public/youtube', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Erro interno' }); }
 });
 
+app.get('/api/public/tts', async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT chave, valor FROM config WHERE chave IN ('tts_voice_uri', 'tts_rate', 'tts_pitch')");
+    const tts = { uri: '', rate: 1, pitch: 1 };
+    rows.forEach(r => {
+      if (r.chave === 'tts_voice_uri') tts.uri = r.valor;
+      if (r.chave === 'tts_rate') tts.rate = parseFloat(r.valor) || 1;
+      if (r.chave === 'tts_pitch') tts.pitch = parseFloat(r.valor) || 1;
+    });
+    res.json(tts);
+  } catch (err) { res.status(500).json({ error: 'Erro interno' }); }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Erro interno no servidor' });
 });
 
 // ---- Database initialization ----
@@ -128,6 +157,7 @@ async function initDatabase() {
           chegada_at TEXT,
           chamado_at TEXT
         );
+        CREATE INDEX IF NOT EXISTS idx_periciados_perito_id ON periciados(perito_id);
 
         CREATE TABLE IF NOT EXISTS pautas (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,6 +167,7 @@ async function initDatabase() {
           status TEXT DEFAULT 'aguardando',
           criado_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE INDEX IF NOT EXISTS idx_pautas_sala_id ON pautas(sala_id);
 
         CREATE TABLE IF NOT EXISTS partes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,6 +215,9 @@ async function initDatabase() {
       // Insert default config
       try {
         sqliteDb.prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('youtube_url', '')").run();
+        sqliteDb.prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('tts_voice_uri', '')").run();
+        sqliteDb.prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('tts_rate', '1')").run();
+        sqliteDb.prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('tts_pitch', '1')").run();
       } catch (e) { /* ignore */ }
 
       sqliteDb.close();
@@ -193,21 +227,28 @@ async function initDatabase() {
     // Create default users if none exist
     const { rows } = await db.query('SELECT COUNT(*) as count FROM usuarios');
     if (parseInt(rows[0].count) === 0) {
+      const crypto = require('crypto');
+      const genPass = () => crypto.randomBytes(4).toString('hex'); // 8 chars
       const defaults = [
-        { nome: 'Administrador', usuario: 'admin', senha: 'admin123', perfil: 'admin' },
-        { nome: 'Recepção', usuario: 'recepcao', senha: 'recepcao123', perfil: 'recepcao' },
-        { nome: 'Perito', usuario: 'perito', senha: 'perito123', perfil: 'perito' },
-        { nome: 'Conciliador', usuario: 'conciliador', senha: 'conciliador123', perfil: 'conciliador' },
+        { nome: 'Administrador', usuario: 'admin', senha: process.env.ADMIN_PASS || genPass(), perfil: 'admin' },
+        { nome: 'Recepção', usuario: 'recepcao', senha: process.env.RECEP_PASS || genPass(), perfil: 'recepcao' },
+        { nome: 'Perito', usuario: 'perito', senha: process.env.PERITO_PASS || genPass(), perfil: 'perito' },
+        { nome: 'Conciliador', usuario: 'conciliador', senha: process.env.CONCIL_PASS || genPass(), perfil: 'conciliador' },
       ];
 
+      console.log('\n==================================================');
+      console.log('⚠️ USUÁRIOS PADRÃO CRIADOS COM SENHAS SEGURAS ⚠️');
+      console.log('Guarde estas credenciais, elas não serão exibidas novamente:');
+      
       for (const u of defaults) {
         const hash = await bcrypt.hash(u.senha, 10);
         await db.query(
           'INSERT INTO usuarios (nome, usuario, senha_hash, perfil) VALUES ($1, $2, $3, $4)',
           [u.nome, u.usuario, hash, u.perfil]
         );
+        console.log(`- Perfil: ${u.perfil.padEnd(12)} | Usuário: ${u.usuario.padEnd(12)} | Senha: ${u.senha}`);
       }
-      console.log('✓ Default users created');
+      console.log('==================================================\n');
     }
   } catch (err) {
     console.error('✗ Database init error:', err.message);
@@ -224,6 +265,22 @@ async function initDatabase() {
 async function start() {
   await initDatabase();
   
+  // WebSocket Authentication Middleware
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      return next(new Error('Authentication error: Token não fornecido'));
+    }
+    try {
+      const jwt = require('jsonwebtoken');
+      const { JWT_SECRET } = require('./middleware/auth');
+      jwt.verify(token, JWT_SECRET);
+      next();
+    } catch(err) {
+      next(new Error('Authentication error: Token inválido'));
+    }
+  });
+
   io.on('connection', (socket) => {
     // console.log('Client connected:', socket.id);
   });

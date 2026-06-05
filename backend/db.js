@@ -17,8 +17,8 @@ if (USE_PG) {
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'sgf_jfal',
-    user: process.env.DB_USER || 'sgf',
-    password: process.env.DB_PASS || 'sgf123',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
   });
   pool.on('error', (err) => console.error('PG idle client error', err));
 
@@ -33,7 +33,7 @@ if (USE_PG) {
   // ---- SQLite (local dev) ----
   const Database = require('better-sqlite3');
   const path = require('path');
-  const dbPath = path.join(__dirname, 'sgf_jfal.db');
+  const dbPath = process.env.SQLITE_PATH || path.join(__dirname, 'sgf_jfal.db');
   const db = new Database(dbPath);
 
   // Enable WAL mode for better concurrency

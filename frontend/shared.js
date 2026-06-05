@@ -12,9 +12,12 @@ const SGF = (function () {
   const TOKEN_KEY = 'sgf_jfal_token';
   const USER_KEY = 'sgf_jfal_user';
 
-  // Initialize Socket.io
   const socketUrl = API_BASE.replace('/api', '');
-  const socket = typeof io !== 'undefined' ? io(socketUrl) : null;
+  const socket = typeof io !== 'undefined' ? io(socketUrl, {
+    auth: (cb) => {
+      cb({ token: getToken() });
+    }
+  }) : null;
 
   // ---- Token Management ----
   function getToken() {
@@ -292,9 +295,13 @@ const SGF = (function () {
 
   // ---- Utils ----
   function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.appendChild(document.createTextNode(text || ''));
-    return div.innerHTML;
+    if (typeof text !== 'string') text = String(text || '');
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function formatTime(ts) {
@@ -311,13 +318,16 @@ const SGF = (function () {
     if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+    const safeMessage = escapeHtml(message);
     toast.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         ${type === 'success' ? '<polyline points="20 6 9 17 4 12"/>' :
           type === 'error' ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' :
           '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
       </svg>
-      <span>${message}</span>
+      <span>${safeMessage}</span>
     `;
     container.appendChild(toast);
     setTimeout(() => {
@@ -366,14 +376,11 @@ const SGF = (function () {
   function onSocketEvent(event, callback) {
     if (socket) {
       socket.on(event, callback);
-      // Trigger immediate initial load
-      callback();
       return function offEvent() {
         socket.off(event, callback);
       };
     } else {
       console.warn('Socket.io não carregado. Recarregamento em tempo real desativado.');
-      callback();
       return () => {};
     }
   }

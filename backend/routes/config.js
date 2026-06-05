@@ -31,11 +31,53 @@ router.put('/youtube', requirePerfil('admin', 'recepcao'), async (req, res) => {
   }
 });
 
+// GET /api/config/tts
+router.get('/tts', async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT chave, valor FROM config WHERE chave IN ('tts_voice_uri', 'tts_rate', 'tts_pitch')");
+    const tts = { uri: '', rate: 1, pitch: 1 };
+    rows.forEach(r => {
+      if (r.chave === 'tts_voice_uri') tts.uri = r.valor;
+      if (r.chave === 'tts_rate') tts.rate = parseFloat(r.valor) || 1;
+      if (r.chave === 'tts_pitch') tts.pitch = parseFloat(r.valor) || 1;
+    });
+    res.json(tts);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/config/tts (admin only)
+router.put('/tts', requirePerfil('admin'), async (req, res) => {
+  try {
+    const { uri, rate, pitch } = req.body;
+    await db.query(
+      `INSERT INTO config (chave, valor) VALUES ('tts_voice_uri', $1)
+       ON CONFLICT (chave) DO UPDATE SET valor = $1`,
+      [uri || '']
+    );
+    await db.query(
+      `INSERT INTO config (chave, valor) VALUES ('tts_rate', $1)
+       ON CONFLICT (chave) DO UPDATE SET valor = $1`,
+      [rate != null ? rate.toString() : '1']
+    );
+    await db.query(
+      `INSERT INTO config (chave, valor) VALUES ('tts_pitch', $1)
+       ON CONFLICT (chave) DO UPDATE SET valor = $1`,
+      [pitch != null ? pitch.toString() : '1']
+    );
+    req.app.get('io').emit('tts_update', { uri, rate, pitch });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
 // GET /api/config/historico
 router.get('/historico', async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT * FROM historico_chamadas ORDER BY chamado_at DESC LIMIT 50'
+      "SELECT * FROM historico_chamadas WHERE date(chamado_at, 'localtime') = date('now', 'localtime') ORDER BY chamado_at DESC LIMIT 50"
     );
     res.json(rows);
   } catch (err) {

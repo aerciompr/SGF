@@ -30,6 +30,14 @@
   let callTimeout = null;
   let lastHistoricoId = -1; // initialized to -1 to catch the first call if starting from empty db
   let isFirstFetch = true;
+  let ttsConfig = { uri: '', rate: 1, pitch: 1 };
+
+  async function loadTTSConfig() {
+    try {
+      const res = await fetch(API_BASE + '/public/tts?t=' + new Date().getTime());
+      ttsConfig = await res.json();
+    } catch (e) { }
+  }
 
   // ---- Clock ----
   function updateClock() {
@@ -41,7 +49,7 @@
   // ---- YouTube ----
   async function loadYouTube() {
     try {
-      const res = await fetch(API_BASE + '/public/youtube');
+      const res = await fetch(API_BASE + '/public/youtube?t=' + new Date().getTime());
       const data = await res.json();
       const url = data.url || '';
 
@@ -133,9 +141,8 @@
     els.waitingState.style.display = 'none';
     els.currentCall.style.display = 'block';
 
-    // HIDE YOUTUBE VISUALLY DURING CALL
     const container = $('.youtube-fullscreen');
-    if (container) container.hidden = true;
+    if (container) container.classList.add('video-dimmed');
 
     const tipoChamada = data.tipo || 'pericia';
     els.callTypeBadge.textContent = tipoChamada === 'pericia' ? 'Perícia' :
@@ -143,8 +150,7 @@
     els.callName.textContent = data.nome;
     els.callRoom.textContent = data.sala;
 
-    // Mute YouTube while showing call
-    if (ytPlayer && ytPlayer.mute) ytPlayer.mute();
+    if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(10);
 
     playDingDong(() => {
       // Only speak if it is not a recall
@@ -163,15 +169,17 @@
   function hideCall() {
     currentCallData = null;
     els.currentCall.style.display = 'none';
-    // Show YouTube if available, otherwise show waiting state
+    
     const container = $('.youtube-fullscreen');
+    if (container) container.classList.remove('video-dimmed');
+
     if (ytPlayer) {
       if (container) container.hidden = false;
       els.waitingState.style.display = 'none';
-      if (ytPlayer.unMute) {
+      if (ytPlayer.setVolume) {
         const overlay = document.getElementById('start-audio-overlay');
         if (!overlay || overlay.hidden) {
-          ytPlayer.unMute();
+          ytPlayer.setVolume(100);
         }
       }
     } else {
@@ -184,8 +192,13 @@
     speechSynthesis.cancel();
     const msg = new SpeechSynthesisUtterance(`${nome}, por favor, dirija-se à ${sala}`);
     msg.lang = 'pt-BR';
-    msg.rate = 0.9;
-    msg.pitch = 1;
+    msg.rate = ttsConfig.rate || 1;
+    msg.pitch = ttsConfig.pitch || 1;
+    if (ttsConfig.uri) {
+      const voices = speechSynthesis.getVoices();
+      const voice = voices.find(v => v.voiceURI === ttsConfig.uri);
+      if (voice) msg.voice = voice;
+    }
     speechSynthesis.speak(msg);
   }
 
@@ -251,8 +264,8 @@
   // ---- Polling ----
   async function pollForUpdates() {
     try {
-      // Check for new calls in the history
-      const res = await fetch(API_BASE + '/public/historico');
+      // Check for new calls in the history (cache buster added)
+      const res = await fetch(API_BASE + '/public/historico?t=' + new Date().getTime());
       const historico = await res.json();
 
       if (historico.length > 0) {
@@ -305,6 +318,7 @@
     updateClock();
     setInterval(updateClock, 1000);
     loadYouTube();
+    loadTTSConfig();
 
     const overlay = document.getElementById('start-audio-overlay');
     if (overlay) {
@@ -333,6 +347,9 @@
       });
       SGF.onSocketEvent('youtube_update', (data) => {
         updateYouTubeUrl(data.url);
+      });
+      SGF.onSocketEvent('tts_update', (data) => {
+        ttsConfig = data;
       });
     } else {
       setInterval(pollForUpdates, 3000);

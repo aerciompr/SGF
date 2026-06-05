@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sgf-jfal-secret-key-change-in-production';
+let JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  JWT_SECRET = crypto.randomBytes(32).toString('hex');
+  console.warn('⚠️ AVISO: JWT_SECRET não definido. Gerado segredo temporário (senhas/sessões serão invalidadas no restart).');
+}
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;

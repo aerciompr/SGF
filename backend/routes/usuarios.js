@@ -77,7 +77,13 @@ router.put('/:id', async (req, res) => {
       const hash = await bcrypt.hash(senha, 10);
       fields.push(`senha_hash = $${idx++}`); values.push(hash);
     }
-    if (perfil !== undefined) { fields.push(`perfil = $${idx++}`); values.push(perfil); }
+    if (perfil !== undefined) {
+      const validPerfis = ['admin', 'recepcao', 'perito', 'conciliador'];
+      if (!validPerfis.includes(perfil)) {
+        return res.status(400).json({ error: 'Perfil inválido' });
+      }
+      fields.push(`perfil = $${idx++}`); values.push(perfil);
+    }
     if (ativo !== undefined) { fields.push(`ativo = $${idx++}`); values.push(ativo); }
 
     if (fields.length === 0) {

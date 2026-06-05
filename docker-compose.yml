@@ -1,47 +1,17 @@
-services:
-  db:
-    image: postgres:16-alpine
-    container_name: sgf-jfal-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: sgf_jfal
-      POSTGRES_USER: sgf
-      POSTGRES_PASSWORD: sgf123
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - jfal_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sgf -d sgf_jfal"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+version: '3.8'
 
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    container_name: sgf-jfal-backend
-    restart: unless-stopped
-    networks:
-      - jfal_net
-    depends_on:
-      db:
-        condition: service_healthy
+services:
+  app:
+    build: .
+    container_name: sgf-jfal
     ports:
       - "3000:3000"
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: sgf_jfal
-      DB_USER: sgf
-      DB_PASS: sgf123
-      JWT_SECRET: sgf-jfal-secret-mude-em-producao
-      PORT: 3000
-
-networks:
-  jfal_net:
-    driver: bridge
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-mude_esta_senha_em_producao}
+    volumes:
+      - sgf_data:/app/backend/data
+    restart: unless-stopped
 
 volumes:
-  pgdata:
+  sgf_data:

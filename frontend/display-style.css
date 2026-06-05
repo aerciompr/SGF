@@ -120,6 +120,7 @@ body.display-screen {
   height: 100%;
   background: #000;
   z-index: 5;
+  transition: filter 0.5s ease, opacity 0.5s ease;
 }
 
 .youtube-fullscreen #youtube-player,
@@ -131,6 +132,11 @@ body.display-screen {
   height: 100% !important;
   display: block;
   border: none;
+}
+
+.youtube-fullscreen.video-dimmed {
+  filter: blur(8px) brightness(0.3);
+  opacity: 0.6;
 }
 
 /* ---- Waiting State ---- */

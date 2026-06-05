@@ -160,7 +160,9 @@
     fila = applyMixedPriority(fila);
 
     els.filaCount.textContent = fila.length;
-    els.btnChamarProximo.disabled = fila.length === 0 || !salaSelected;
+    const isOcupado = chamados.length > 0;
+    els.btnChamarProximo.disabled = fila.length === 0 || !salaSelected || isOcupado;
+    els.btnChamarProximo.title = isOcupado ? "Finalize o atendimento atual (Compareceu/Ausente) antes de chamar o próximo" : "";
     els.filaList.innerHTML = '';
 
     // --- Queue section ---
@@ -190,7 +192,7 @@
           </div>
         </div>
         <div class="list-item-actions">
-          <button class="btn btn-call btn-sm" data-chamar="${p.id}" ${!salaSelected ? 'disabled' : ''}>
+          <button class="btn btn-call btn-sm" data-chamar="${p.id}" ${(!salaSelected || isOcupado) ? 'disabled' : ''} title="${isOcupado ? 'Finalize o atendimento atual primeiro' : ''}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             Chamar
           </button>

@@ -17,23 +17,51 @@ const emitHistorico = (req) => {
 // GET /api/pautas
 router.get('/', async (req, res) => {
   try {
-    // Load pautas with nested partes and testemunhas
     const { rows: pautas } = await db.query('SELECT * FROM pautas ORDER BY criado_at ASC');
+    if (pautas.length === 0) return res.json(pautas);
 
-    for (const pauta of pautas) {
-      const { rows: partes } = await db.query(
-        'SELECT * FROM partes WHERE pauta_id = $1 ORDER BY ordem ASC',
-        [pauta.id]
+    const pautasIds = pautas.map(p => p.id);
+    const inClausePautas = pautasIds.map((_, i) => `$${i + 1}`).join(',');
+    
+    const { rows: partes } = await db.query(
+      `SELECT * FROM partes WHERE pauta_id IN (${inClausePautas}) ORDER BY ordem ASC`,
+      pautasIds
+    );
+
+    let testemunhas = [];
+    if (partes.length > 0) {
+      const partesIds = partes.map(p => p.id);
+      const inClausePartes = partesIds.map((_, i) => `$${i + 1}`).join(',');
+      const resT = await db.query(
+        `SELECT * FROM testemunhas WHERE parte_id IN (${inClausePartes}) ORDER BY ordem ASC`,
+        partesIds
       );
-      for (const parte of partes) {
-        const { rows: testemunhas } = await db.query(
-          'SELECT * FROM testemunhas WHERE parte_id = $1 ORDER BY ordem ASC',
-          [parte.id]
-        );
-        parte.testemunhas = testemunhas;
-      }
-      pauta.partes = partes;
+      testemunhas = resT.rows;
     }
+
+    const partesMap = {};
+    partes.forEach(p => {
+      p.testemunhas = [];
+      partesMap[p.id] = p;
+    });
+
+    testemunhas.forEach(t => {
+      if (partesMap[t.parte_id]) {
+        partesMap[t.parte_id].testemunhas.push(t);
+      }
+    });
+
+    const pautasMap = {};
+    pautas.forEach(p => {
+      p.partes = [];
+      pautasMap[p.id] = p;
+    });
+
+    partes.forEach(p => {
+      if (pautasMap[p.pauta_id]) {
+        pautasMap[p.pauta_id].partes.push(p);
+      }
+    });
 
     res.json(pautas);
   } catch (err) {
@@ -192,6 +220,7 @@ router.delete('/:pautaId/partes/:parteId/testemunhas/:testId', requirePerfil('co
 router.put('/pessoas/:tipo/:id/chamar', requirePerfil('conciliador'), async (req, res) => {
   try {
     const { tipo, id } = req.params;
+    if (tipo !== 'testemunha' && tipo !== 'parte') return res.status(400).json({ error: 'Tipo inválido' });
     const { sala, processo } = req.body;
     const table = tipo === 'testemunha' ? 'testemunhas' : 'partes';
 
@@ -227,7 +256,9 @@ router.put('/pessoas/:tipo/:id/chamar', requirePerfil('conciliador'), async (req
 // PUT /api/pautas/pessoas/:tipo/:id/presente
 router.put('/pessoas/:tipo/:id/presente', requirePerfil('conciliador'), async (req, res) => {
   try {
-    const table = req.params.tipo === 'testemunha' ? 'testemunhas' : 'partes';
+    const { tipo, id } = req.params;
+    if (tipo !== 'testemunha' && tipo !== 'parte') return res.status(400).json({ error: 'Tipo inválido' });
+    const table = tipo === 'testemunha' ? 'testemunhas' : 'partes';
     const { rows } = await db.query(
       `UPDATE ${table} SET status = 'presente' WHERE id = $1 RETURNING *`,
       [req.params.id]
@@ -243,7 +274,9 @@ router.put('/pessoas/:tipo/:id/presente', requirePerfil('conciliador'), async (r
 // PUT /api/pautas/pessoas/:tipo/:id/ausente
 router.put('/pessoas/:tipo/:id/ausente', requirePerfil('conciliador'), async (req, res) => {
   try {
-    const table = req.params.tipo === 'testemunha' ? 'testemunhas' : 'partes';
+    const { tipo, id } = req.params;
+    if (tipo !== 'testemunha' && tipo !== 'parte') return res.status(400).json({ error: 'Tipo inválido' });
+    const table = tipo === 'testemunha' ? 'testemunhas' : 'partes';
     const { rows } = await db.query(
       `UPDATE ${table} SET status = 'ausente' WHERE id = $1 RETURNING *`,
       [req.params.id]
@@ -259,7 +292,9 @@ router.put('/pessoas/:tipo/:id/ausente', requirePerfil('conciliador'), async (re
 // PUT /api/pautas/pessoas/:tipo/:id/resetar
 router.put('/pessoas/:tipo/:id/resetar', requirePerfil('conciliador'), async (req, res) => {
   try {
-    const table = req.params.tipo === 'testemunha' ? 'testemunhas' : 'partes';
+    const { tipo, id } = req.params;
+    if (tipo !== 'testemunha' && tipo !== 'parte') return res.status(400).json({ error: 'Tipo inválido' });
+    const table = tipo === 'testemunha' ? 'testemunhas' : 'partes';
     const { rows } = await db.query(
       `UPDATE ${table} SET status = 'aguardando' WHERE id = $1 RETURNING *`,
       [req.params.id]

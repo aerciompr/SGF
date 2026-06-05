@@ -62,6 +62,12 @@
     inputYoutube: $('#input-youtube-url'),
     btnSaveYoutube: $('#btn-save-youtube'),
     btnClearYoutube: $('#btn-clear-youtube'),
+    // TTS
+    formTTS: $('#form-tts'),
+    selectTTSVoice: $('#select-tts-voice'),
+    inputTTSRate: $('#input-tts-rate'),
+    inputTTSPitch: $('#input-tts-pitch'),
+    btnTestTTS: $('#btn-test-tts'),
     // Usuarios
     formNovoUsuario: $('#form-novo-usuario'),
     inputUsuarioNome: $('#input-usuario-nome'),
@@ -205,7 +211,7 @@
           </div>
         </div>
         <div class="list-item-actions" style="display:flex;gap:4px;">
-          <button class="btn-icon" data-edit='${JSON.stringify({id:u.id,nome:u.nome,usuario:u.usuario,perfil:u.perfil,ativo:u.ativo})}' title="Editar">
+          <button class="btn-icon" data-edit="${SGF.escapeHtml(JSON.stringify({id:u.id,nome:u.nome,usuario:u.usuario,perfil:u.perfil,ativo:u.ativo}))}" title="Editar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           <button class="btn-icon danger" data-delete="${u.id}" title="Remover">
@@ -485,10 +491,84 @@
     updateYoutubePreview(url);
   }
 
+  async function loadTTS() {
+    const res = await fetch((window.location.port === '80' || window.location.port === '' ? '/api' : `http://${window.location.hostname}:3000/api`) + '/config/tts', {
+      headers: { 'Authorization': `Bearer ${SGF.getToken()}` }
+    });
+    if (res.ok) {
+      const tts = await res.json();
+      els.inputTTSRate.value = tts.rate || 1;
+      els.inputTTSPitch.value = tts.pitch || 1;
+      const setVoice = () => {
+        if (tts.uri && els.selectTTSVoice.querySelector(`option[value="${tts.uri}"]`)) {
+          els.selectTTSVoice.value = tts.uri;
+        }
+      };
+      setVoice();
+      setTimeout(setVoice, 500);
+    }
+  }
+
+  function populateVoices() {
+    const voices = speechSynthesis.getVoices();
+    const currentVal = els.selectTTSVoice.value;
+    els.selectTTSVoice.innerHTML = '<option value="">Padrão do Sistema</option>';
+    voices.forEach(voice => {
+      const option = document.createElement('option');
+      option.value = voice.voiceURI;
+      option.textContent = `${voice.name} (${voice.lang})`;
+      els.selectTTSVoice.appendChild(option);
+    });
+    if (currentVal && els.selectTTSVoice.querySelector(`option[value="${currentVal}"]`)) {
+      els.selectTTSVoice.value = currentVal;
+    }
+  }
+
+  function initTTS() {
+    populateVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoices;
+    }
+    
+    loadTTS();
+
+    els.formTTS.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const uri = els.selectTTSVoice.value;
+      const rate = els.inputTTSRate.value;
+      const pitch = els.inputTTSPitch.value;
+      const url = (window.location.port === '80' || window.location.port === '' ? '/api' : `http://${window.location.hostname}:3000/api`) + '/config/tts';
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SGF.getToken()}` },
+        body: JSON.stringify({ uri, rate, pitch })
+      });
+      if (res.ok) toast('Configuração de voz salva', 'success');
+      else toast('Erro ao salvar voz', 'error');
+    });
+
+    els.btnTestTTS.addEventListener('click', () => {
+      const uri = els.selectTTSVoice.value;
+      const rate = els.inputTTSRate.value;
+      const pitch = els.inputTTSPitch.value;
+      const msg = new SpeechSynthesisUtterance('Testando o sistema de som da Justiça Federal em Alagoas.');
+      msg.rate = parseFloat(rate);
+      msg.pitch = parseFloat(pitch);
+      if (uri) {
+        const voices = speechSynthesis.getVoices();
+        const voice = voices.find(v => v.voiceURI === uri);
+        if (voice) msg.voice = voice;
+      }
+      speechSynthesis.cancel();
+      speechSynthesis.speak(msg);
+    });
+  }
+
   async function initApp() {
     renderSalasPericia();
     renderSalasAudiencia();
     loadYoutube();
+    initTTS();
     renderUsuarios();
     renderStats();
     renderAuditoria();

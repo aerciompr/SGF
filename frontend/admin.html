@@ -140,6 +140,43 @@
         </div>
       </section>
 
+      <section class="card" id="card-tts">
+        <div class="card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+            Configuração de Voz (TTS)
+          </h2>
+        </div>
+        <div class="card-body">
+          <form id="form-tts" autocomplete="off">
+            <div class="form-group">
+              <label for="select-tts-voice">Voz</label>
+              <select id="select-tts-voice"></select>
+            </div>
+            <div class="form-row" style="margin-bottom: 12px;">
+              <div class="form-group" style="flex:1;">
+                <label for="input-tts-rate">Velocidade</label>
+                <input type="number" id="input-tts-rate" min="0.1" max="10" step="0.1" value="1">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label for="input-tts-pitch">Tom</label>
+                <input type="number" id="input-tts-pitch" min="0" max="2" step="0.1" value="1">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Salvar
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-test-tts">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Testar
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <section class="card" id="card-usuarios">
         <div class="card-header">
           <h2>
