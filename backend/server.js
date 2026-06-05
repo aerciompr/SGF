@@ -21,21 +21,32 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet({
+  // Desabilita HSTS para funcionar em HTTP (sem HTTPS)
+  strictTransportSecurity: false,
+  // Desabilita upgrade inseguro de requests
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.youtube.com", "https://s.ytimg.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
       frameSrc: ["'self'", "https://www.youtube.com"],
       imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"],
-      connectSrc: ["'self'", "ws:", "wss:"],
-      mediaSrc: ["'self'"],
+      // Permite WS e WSS para o Socket.io funcionar em HTTP e HTTPS
+      connectSrc: ["'self'", "http:", "https:", "ws:", "wss:"],
+      mediaSrc: ["'self'", "data:"],
+      upgradeInsecureRequests: null,
     }
   }
 }));
-app.use(cors());
+
+// CORS aberto para acesso pela rede local e internet
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Serve static frontend files

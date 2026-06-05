@@ -7,9 +7,7 @@
   'use strict';
 
   const $ = (sel) => document.querySelector(sel);
-  const API_BASE = window.location.port === '80' || window.location.port === ''
-    ? '/api'
-    : `http://${window.location.hostname}:3000/api`;
+  const API_BASE = window.location.origin + '/api';
 
   const els = {
     clock: $('#display-clock'),

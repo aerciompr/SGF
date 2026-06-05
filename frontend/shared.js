@@ -6,13 +6,12 @@
 const SGF = (function () {
   'use strict';
 
-  const API_BASE = window.location.port === '80' || window.location.port === ''
-    ? '/api'
-    : `http://${window.location.hostname}:3000/api`;
+  // Usa sempre o mesmo host e porta que o navegador está acessando
+  const API_BASE = window.location.origin + '/api';
   const TOKEN_KEY = 'sgf_jfal_token';
   const USER_KEY = 'sgf_jfal_user';
 
-  const socketUrl = API_BASE.replace('/api', '');
+  const socketUrl = window.location.origin;
   const socket = typeof io !== 'undefined' ? io(socketUrl, {
     auth: (cb) => {
       cb({ token: getToken() });
