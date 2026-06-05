@@ -24,9 +24,14 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://s.ytimg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.youtube.com", "https://s.ytimg.com"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       frameSrc: ["'self'", "https://www.youtube.com"],
-      imgSrc: ["'self'", "data:", "https://i.ytimg.com"]
+      imgSrc: ["'self'", "data:", "https://i.ytimg.com", "https://img.youtube.com"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      mediaSrc: ["'self'"],
     }
   }
 }));
