@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>SGF Debug</title>
+<style>
+  body { font-family: monospace; padding: 20px; background: #111; color: #0f0; }
+  .ok { color: #0f0; } .err { color: #f00; } .warn { color: #ff0; }
+  button { margin: 5px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
+  pre { background: #222; padding: 10px; margin: 5px 0; overflow: auto; max-height: 200px; }
+  h2 { color: #0af; }
+</style>
+</head>
+<body>
+<h1>SGF Display - Diagnóstico</h1>
+
+<h2>1. Teste de API</h2>
+<button onclick="testAPI()">Testar /api/public/historico</button>
+<pre id="api-result">Clique para testar...</pre>
+
+<h2>2. Teste de Socket.io</h2>
+<pre id="socket-status">Aguardando...</pre>
+
+<h2>3. Teste de Áudio (ding-dong)</h2>
+<button onclick="testDing()">Tocar Ding-Dong</button>
+<pre id="audio-result">Clique para testar...</pre>
+
+<h2>4. Teste de Voz (TTS)</h2>
+<button onclick="testTTS()">Falar "João Silva, Sala 1"</button>
+<pre id="tts-result">Clique para testar...</pre>
+
+<h2>5. Teste Completo - Simular Chamada</h2>
+<button onclick="testShowCall()" style="background:#0a5;color:#fff;font-size:18px;padding:15px 30px;">▶ SIMULAR CHAMADA NO DISPLAY</button>
+<pre id="call-result">Clique para simular...</pre>
+
+<h2>6. Log em tempo real</h2>
+<pre id="log" style="height:300px; background:#000; color:#0f0;"></pre>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const API = window.location.origin + '/api';
+const log = (msg, cls='') => {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = new Date().toLocaleTimeString() + ' | ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+};
+
+// === API TEST ===
+async function testAPI() {
+  const el = document.getElementById('api-result');
+  try {
+    const r = await fetch(API + '/public/historico?t=' + Date.now());
+    const data = await r.json();
+    el.className = 'ok';
+    el.textContent = 'OK! ' + data.length + ' registros:\n' + JSON.stringify(data, null, 2);
+    log('API OK: ' + data.length + ' registros', 'ok');
+  } catch(e) {
+    el.className = 'err';
+    el.textContent = 'ERRO: ' + e.message;
+    log('API ERRO: ' + e.message, 'err');
+  }
+}
+
+// === SOCKET TEST ===
+let socket;
+try {
+  socket = io(window.location.origin, { transports: ['websocket','polling'] });
+  socket.on('connect', () => {
+    document.getElementById('socket-status').className = 'ok';
+    document.getElementById('socket-status').textContent = 'CONECTADO! Socket ID: ' + socket.id;
+    log('Socket conectado: ' + socket.id, 'ok');
+  });
+  socket.on('connect_error', (e) => {
+    document.getElementById('socket-status').className = 'err';
+    document.getElementById('socket-status').textContent = 'ERRO DE CONEXÃO: ' + e.message;
+    log('Socket erro: ' + e.message, 'err');
+  });
+  socket.on('update_historico', () => {
+    log('>>> RECEBEU: update_historico <<<', 'ok');
+    document.getElementById('socket-status').textContent += '\n[' + new Date().toLocaleTimeString() + '] EVENTO: update_historico recebido!';
+  });
+  socket.on('chamar_novamente', (d) => {
+    log('>>> RECEBEU: chamar_novamente ' + JSON.stringify(d), 'ok');
+  });
+} catch(e) {
+  document.getElementById('socket-status').className = 'err';
+  document.getElementById('socket-status').textContent = 'Socket.io não carregado: ' + e.message;
+  log('Socket.io erro: ' + e.message, 'err');
+}
+
+// === AUDIO TEST ===
+function testDing() {
+  const el = document.getElementById('audio-result');
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) { el.textContent = 'ERRO: AudioContext não disponível'; el.className='err'; return; }
+    const ctx = new Ctx();
+    function tone(freq, start, dur) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + start + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + start); osc.stop(ctx.currentTime + start + dur);
+    }
+    tone(659.25, 0, 0.45);
+    tone(523.25, 0.5, 0.9);
+    el.className = 'ok'; el.textContent = 'OK - Ding-dong tocando!';
+    log('Áudio OK', 'ok');
+  } catch(e) {
+    el.className = 'err'; el.textContent = 'ERRO: ' + e.message;
+    log('Áudio ERRO: ' + e.message, 'err');
+  }
+}
+
+// === TTS TEST ===
+function testTTS() {
+  const el = document.getElementById('tts-result');
+  if (!('speechSynthesis' in window)) {
+    el.className='err'; el.textContent = 'ERRO: speechSynthesis não disponível neste navegador';
+    log('TTS: não disponível', 'err'); return;
+  }
+  const voices = speechSynthesis.getVoices();
+  speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance('João Silva, por favor, dirija-se à Sala de Perícia 1');
+  msg.lang = 'pt-BR';
+  speechSynthesis.speak(msg);
+  el.className='ok'; 
+  el.textContent = 'Falando... Vozes disponíveis (' + voices.length + '):\n' + voices.map(v=>v.name+' ('+v.lang+')').join('\n');
+  log('TTS falando, vozes: ' + voices.length, 'ok');
+}
+
+// === FULL CALL TEST ===
+function testShowCall() {
+  const el = document.getElementById('call-result');
+  log('Simulando chamada no display...', 'warn');
+  
+  // Abre o display em nova aba se não existir
+  const displayWin = window.open('/display.html', 'sgf-display');
+  
+  setTimeout(() => {
+    el.className = 'ok';
+    el.textContent = 'Display aberto. Agora fazendo chamada via API...';
+    // Chama via API (requer login - só informativo aqui)
+    log('Display aberto em nova aba', 'ok');
+    log('Para testar: vá no painel do Perito e clique Chamar', 'warn');
+    log('O display deve reagir em até 5 segundos', 'warn');
+  }, 1000);
+}
+
+// Auto-test na carga
+window.onload = () => {
+  log('Página carregada - iniciando diagnóstico', 'ok');
+  testAPI();
+};
+</script>
+</body>
+</html>
