@@ -119,7 +119,7 @@ async function initDatabase() {
     } else {
       // SQLite mode: create tables directly
       const Database = require('better-sqlite3');
-      const dbPath = path.join(__dirname, 'sgf_jfal.db');
+      const dbPath = process.env.SQLITE_PATH || path.join(__dirname, 'sgf_jfal.db');
       const sqliteDb = new Database(dbPath);
       sqliteDb.pragma('journal_mode = WAL');
       sqliteDb.pragma('foreign_keys = ON');
