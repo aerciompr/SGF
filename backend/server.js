@@ -114,6 +114,26 @@ app.get('/api/public/tts', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Erro interno' }); }
 });
 
+// POST /api/public/chamar — chamada avulsa (sem login, direto no display)
+app.post('/api/public/chamar', async (req, res) => {
+  try {
+    const { nome, sala, tipo } = req.body;
+    if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome é obrigatório' });
+    if (!sala || !sala.trim()) return res.status(400).json({ error: 'Sala é obrigatória' });
+    const tipoValido = ['pericia', 'audiencia_parte', 'audiencia_testemunha'].includes(tipo) ? tipo : 'pericia';
+    await db.query(
+      `INSERT INTO historico_chamadas (nome, sala, tipo) VALUES ($1, $2, $3)`,
+      [nome.trim(), sala.trim(), tipoValido]
+    );
+    const io = req.app.get('io');
+    if (io) io.emit('update_historico');
+    res.json({ ok: true, nome: nome.trim(), sala: sala.trim(), tipo: tipoValido });
+  } catch (err) {
+    console.error('Chamar avulso error:', err);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
