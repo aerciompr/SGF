@@ -282,19 +282,24 @@ async function start() {
   await initDatabase();
   
   // WebSocket Authentication Middleware
+  // O socket é um canal SOMENTE de difusão (broadcast). O servidor não processa nenhuma
+  // ação enviada pelo cliente via socket — todas as mutações passam pelas rotas REST
+  // protegidas por authMiddleware. Por isso, a tela pública (display.html), que não possui
+  // login/token, PRECISA conseguir conectada para receber as chamadas em tempo real.
+  // Verificamos o token quando presente (para anexar o usuário), mas não rejeitamos
+  // conexões anônimas.
   io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (!token) {
-      return next(new Error('Authentication error: Token não fornecido'));
+    const token = socket.handshake.auth && socket.handshake.auth.token;
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const { JWT_SECRET } = require('./middleware/auth');
+        socket.user = jwt.verify(token, JWT_SECRET);
+      } catch (err) {
+        // Token inválido/expirado: mantém a conexão como cliente público (somente leitura).
+      }
     }
-    try {
-      const jwt = require('jsonwebtoken');
-      const { JWT_SECRET } = require('./middleware/auth');
-      jwt.verify(token, JWT_SECRET);
-      next();
-    } catch(err) {
-      next(new Error('Authentication error: Token inválido'));
-    }
+    next();
   });
 
   io.on('connection', (socket) => {

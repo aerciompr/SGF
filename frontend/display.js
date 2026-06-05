@@ -1,6 +1,6 @@
 /* ========================================
    SGF-JFAL - Display Logic (display.js)
-   Uses polling to get latest calls from API
+   Lógica totalmente reescrita - v3
    ======================================== */
 
 (function () {
@@ -9,349 +9,337 @@
   const $ = (sel) => document.querySelector(sel);
   const API_BASE = window.location.origin + '/api';
 
-  const els = {
-    clock: $('#display-clock'),
-    main: $('.display-main'),
-    waitingState: $('#waiting-state'),
-    currentCall: $('#current-call'),
-    callTypeBadge: $('#call-type-badge'),
-    callName: $('#call-name'),
-    callRoomLabel: $('#call-room-label'),
-    callRoom: $('#call-room'),
-    historyTicker: $('#history-ticker'),
-  };
+  /* --- Elementos DOM --- */
+  const elOverlay     = $('#start-audio-overlay');
+  const elCurrentCall = $('#current-call');
+  const elWaiting     = $('#waiting-state');
+  const elYtWrap      = $('#youtube-container');
+  const elClock       = $('#display-clock');
+  const elTypeBadge   = $('#call-type-badge');
+  const elName        = $('#call-name');
+  const elRoom        = $('#call-room');
+  const elTicker      = $('#history-ticker');
 
-  els.currentCall.style.display = 'none';
+  /* --- Estado --- */
+  let ytPlayer         = null;
+  let lastCallId       = 0;   // 0 = nenhum chamado ainda visto
+  let callTimeout      = null;
+  let ttsConfig        = { uri: '', rate: 1, pitch: 1 };
+  let audioUnlocked    = false;
+  let initialLoadDone  = false;
 
-  let ytPlayer = null;
-  let currentCallData = null;
-  let callTimeout = null;
-  let lastHistoricoId = -1; // initialized to -1 to catch the first call if starting from empty db
-  let isFirstFetch = true;
-  let ttsConfig = { uri: '', rate: 1, pitch: 1 };
-
-  async function loadTTSConfig() {
-    try {
-      const res = await fetch(API_BASE + '/public/tts?t=' + new Date().getTime());
-      ttsConfig = await res.json();
-    } catch (e) { }
+  /* ==========================================
+     HELPERS: show/hide usando removeAttribute
+     em vez de style.display para não conflitar
+     com [hidden] { display:none !important }
+  ========================================== */
+  function show(el) {
+    if (!el) return;
+    el.removeAttribute('hidden');
+  }
+  function hide(el) {
+    if (!el) return;
+    el.setAttribute('hidden', '');
   }
 
-  // ---- Clock ----
+  /* ==========================================
+     RELÓGIO
+  ========================================== */
   function updateClock() {
-    els.clock.textContent = new Date().toLocaleTimeString('pt-BR', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
-  }
-
-  // ---- YouTube ----
-  async function loadYouTube() {
-    try {
-      const res = await fetch(API_BASE + '/public/youtube?t=' + new Date().getTime());
-      const data = await res.json();
-      const url = data.url || '';
-
-      const container = $('.youtube-fullscreen');
-      if (!url) {
-        if (container) container.hidden = true;
-        els.waitingState.hidden = false;
-        return;
-      }
-
-      const embedUrl = getEmbedUrl(url);
-      if (!embedUrl) return;
-
-      // Show the YouTube container
-      if (container) container.hidden = false;
-      els.waitingState.hidden = true;
-
-      // YT API is already loaded from HTML script tag
-      if (typeof YT !== 'undefined' && YT.Player) {
-        createPlayer(embedUrl);
-      } else {
-        // Wait for it to load
-        window.onYouTubeIframeAPIReady = () => createPlayer(embedUrl);
-      }
-    } catch (e) {
-      console.error('YouTube load error:', e);
+    if (elClock) {
+      elClock.textContent = new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
     }
   }
 
-  function getEmbedUrl(url) {
-    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([a-zA-Z0-9_-]{11})/);
-    if (m) return `https://www.youtube.com/embed/${m[1]}?autoplay=1&mute=1&loop=1&playlist=${m[1]}&controls=0&showinfo=0&rel=0&enablejsapi=1`;
-    return url;
-  }
-
-  function createPlayer(embedUrl) {
-    const container = $('.youtube-fullscreen');
-    if (!container) return;
-    container.innerHTML = '<div id="youtube-player"></div>';
-    ytPlayer = new YT.Player('youtube-player', {
-      width: '100%',
-      height: '100%',
-      videoId: embedUrl.match(/embed\/([^?]+)/)?.[1] || '',
-      playerVars: {
-        autoplay: 1, mute: 1, loop: 1, controls: 0, showinfo: 0, rel: 0,
-        playlist: embedUrl.match(/embed\/([^?]+)/)?.[1] || '',
-      },
-      events: {
-        onReady: (e) => { 
-           e.target.playVideo(); 
-           const overlay = document.getElementById('start-audio-overlay');
-           if (!overlay || overlay.hidden) {
-              e.target.unMute();
-              e.target.setVolume(100);
-           }
-        },
-      }
-    });
-  }
-
-  function updateYouTubeUrl(url) {
-    const container = $('.youtube-fullscreen');
-    if (!url) {
-      if (container) container.hidden = true;
-      els.waitingState.style.display = 'block';
-      if (ytPlayer && ytPlayer.destroy) {
-          ytPlayer.destroy();
-          ytPlayer = null;
-      }
-      return;
-    }
-    
-    const embedUrl = getEmbedUrl(url);
-    if (!embedUrl) return;
-
-    if (container) container.hidden = false;
-    els.waitingState.style.display = 'none';
-
-    if (ytPlayer && ytPlayer.destroy) {
-        ytPlayer.destroy();
-        ytPlayer = null;
-    }
-    createPlayer(embedUrl);
-  }
-
-  // ---- Display Call ----
-  function showCall(data, isRecall = false) {
-    currentCallData = data;
-    els.waitingState.style.display = 'none';
-    els.currentCall.style.display = 'block';
-
-    const container = $('.youtube-fullscreen');
-    if (container) container.classList.add('video-dimmed');
-
-    const tipoChamada = data.tipo || 'pericia';
-    els.callTypeBadge.textContent = tipoChamada === 'pericia' ? 'Perícia' :
-      tipoChamada === 'audiencia_parte' ? 'Audiência - Parte' : 'Audiência - Testemunha';
-    els.callName.textContent = data.nome;
-    els.callRoom.textContent = data.sala;
-
-    if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(10);
-
-    playDingDong(() => {
-      // Only speak if it is not a recall
-      if (!isRecall) {
-        speakCall(data.nome, data.sala);
-      }
-    });
-
-    // Hide after 8 seconds
-    clearTimeout(callTimeout);
-    callTimeout = setTimeout(() => {
-      hideCall();
-    }, 8000);
-  }
-
-  function hideCall() {
-    currentCallData = null;
-    els.currentCall.style.display = 'none';
-    
-    const container = $('.youtube-fullscreen');
-    if (container) container.classList.remove('video-dimmed');
-
-    if (ytPlayer) {
-      if (container) container.hidden = false;
-      els.waitingState.style.display = 'none';
-      if (ytPlayer.setVolume) {
-        const overlay = document.getElementById('start-audio-overlay');
-        if (!overlay || overlay.hidden) {
-          ytPlayer.setVolume(100);
-        }
-      }
-    } else {
-      els.waitingState.style.display = 'block';
-    }
-  }
-
-  function speakCall(nome, sala) {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(`${nome}, por favor, dirija-se à ${sala}`);
-    msg.lang = 'pt-BR';
-    msg.rate = ttsConfig.rate || 1;
-    msg.pitch = ttsConfig.pitch || 1;
-    if (ttsConfig.uri) {
-      const voices = speechSynthesis.getVoices();
-      const voice = voices.find(v => v.voiceURI === ttsConfig.uri);
-      if (voice) msg.voice = voice;
-    }
-    speechSynthesis.speak(msg);
+  /* ==========================================
+     ÁUDIO - ding-dong + TTS
+  ========================================== */
+  function loadTTSConfig() {
+    fetch(API_BASE + '/public/tts?t=' + Date.now())
+      .then(r => r.json())
+      .then(d => { ttsConfig = d; })
+      .catch(() => {});
   }
 
   function playDingDong(callback) {
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) {
-         if (callback) callback();
-         return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) { callback && callback(); return; }
+      const ctx = new Ctx();
+      function tone(freq, start, dur) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + start);
+        gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + start + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
       }
-      const ctx = new AudioContext();
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gainNode = ctx.createGain();
+      tone(659.25, 0,   0.45); // E5
+      tone(523.25, 0.5, 0.9);  // C5
+      setTimeout(() => { callback && callback(); }, 1500);
+    } catch (e) { callback && callback(); }
+  }
 
-      osc1.type = 'sine';
-      osc2.type = 'sine';
-      osc1.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-      osc2.frequency.setValueAtTime(523.25, ctx.currentTime + 0.5); // C5
+  function speakCall(nome, sala) {
+    if (!audioUnlocked || !('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(
+      `${nome}, por favor, dirija-se à ${sala}`
+    );
+    msg.lang  = 'pt-BR';
+    msg.rate  = ttsConfig.rate  || 1;
+    msg.pitch = ttsConfig.pitch || 1;
+    if (ttsConfig.uri) {
+      const v = speechSynthesis.getVoices().find(v => v.voiceURI === ttsConfig.uri);
+      if (v) msg.voice = v;
+    }
+    speechSynthesis.speak(msg);
+  }
 
-      gainNode.gain.setValueAtTime(0, ctx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+  /* ==========================================
+     EXIBIR / ESCONDER CHAMADA
+  ========================================== */
+  function showCall(data) {
+    /* Atualiza dados */
+    const tipo = data.tipo || 'pericia';
+    elTypeBadge.textContent =
+      tipo === 'pericia'             ? 'PERÍCIA' :
+      tipo === 'audiencia_parte'     ? 'AUDIÊNCIA – PARTE' : 'AUDIÊNCIA – TESTEMUNHA';
+    elName.textContent = data.nome || '';
+    elRoom.textContent = data.sala || '';
 
-      osc1.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.5);
+    /* Mostra o painel de chamada */
+    hide(elWaiting);
+    show(elCurrentCall);
 
-      setTimeout(() => {
-        osc2.connect(gainNode);
-        gainNode.gain.setValueAtTime(0, ctx.currentTime + 0.5);
-        gainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.55);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
-        osc2.start(ctx.currentTime + 0.5);
-        osc2.stop(ctx.currentTime + 1.5);
-      }, 500);
+    /* Esmaece vídeo */
+    if (elYtWrap) elYtWrap.classList.add('video-dimmed');
 
-      setTimeout(() => {
-        if (callback) callback();
-      }, 1500);
-    } catch(e) {
-      if (callback) callback();
+    /* Baixa volume do YouTube */
+    if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(10);
+
+    /* Som + voz */
+    playDingDong(() => speakCall(data.nome, data.sala));
+
+    /* Volta ao normal após 8 s */
+    clearTimeout(callTimeout);
+    callTimeout = setTimeout(hideCall, 8000);
+  }
+
+  function hideCall() {
+    hide(elCurrentCall);
+    if (elYtWrap) elYtWrap.classList.remove('video-dimmed');
+
+    if (ytPlayer && ytPlayer.setVolume && audioUnlocked) {
+      ytPlayer.setVolume(100);
+      show(elYtWrap);
+      hide(elWaiting);
+    } else if (!ytPlayer) {
+      show(elWaiting);
     }
   }
 
-  // ---- History Ticker ----
-  function updateTicker(historico) {
-    els.historyTicker.innerHTML = '';
-    const items = historico.slice(0, 8);
-    items.forEach(h => {
-      const div = document.createElement('div');
-      div.className = 'ticker-item';
-      div.innerHTML = `
-        <span class="ticker-item-name">${escapeHtml(h.nome)}</span>
-        <span class="ticker-item-room">→ ${escapeHtml(h.sala)}</span>
-        <span class="ticker-item-time">${formatTime(h.chamado_at)}</span>
-      `;
-      els.historyTicker.appendChild(div);
+  /* ==========================================
+     YOUTUBE
+  ========================================== */
+  function getVideoId(url) {
+    if (!url) return null;
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  function createYTPlayer(videoId) {
+    if (!videoId) return;
+    if (!window.YT || !window.YT.Player) {
+      window.onYouTubeIframeAPIReady = () => createYTPlayer(videoId);
+      return;
+    }
+    // Limpa player anterior
+    if (ytPlayer && ytPlayer.destroy) { ytPlayer.destroy(); ytPlayer = null; }
+    elYtWrap.innerHTML = '<div id="youtube-player"></div>';
+    ytPlayer = new YT.Player('youtube-player', {
+      width: '100%', height: '100%',
+      videoId,
+      playerVars: { autoplay: 1, mute: 1, loop: 1, controls: 0, rel: 0, playlist: videoId },
+      events: {
+        onReady(e) {
+          e.target.playVideo();
+          if (audioUnlocked) { e.target.unMute(); e.target.setVolume(100); }
+        }
+      }
     });
   }
 
-  // ---- Polling ----
-  async function pollForUpdates() {
+  function loadYouTube() {
+    fetch(API_BASE + '/public/youtube?t=' + Date.now())
+      .then(r => r.json())
+      .then(d => applyYouTubeUrl(d.url || ''))
+      .catch(() => {});
+  }
+
+  function applyYouTubeUrl(url) {
+    const vid = getVideoId(url);
+    if (!vid) {
+      hide(elYtWrap);
+      show(elWaiting);
+      return;
+    }
+    show(elYtWrap);
+    hide(elWaiting);
+    createYTPlayer(vid);
+  }
+
+  /* ==========================================
+     TICKER (últimas chamadas)
+  ========================================== */
+  function updateTicker(historico) {
+    if (!elTicker) return;
+    elTicker.innerHTML = '';
+    historico.slice(0, 8).forEach(h => {
+      const div = document.createElement('div');
+      div.className = 'ticker-item';
+      div.innerHTML = `
+        <span class="ticker-item-name">${esc(h.nome)}</span>
+        <span class="ticker-item-room">→ ${esc(h.sala)}</span>
+        <span class="ticker-item-time">${fmtTime(h.chamado_at)}</span>
+      `;
+      elTicker.appendChild(div);
+    });
+  }
+
+  /* ==========================================
+     POLLING + DETECÇÃO DE NOVA CHAMADA
+  ========================================== */
+  async function poll() {
     try {
-      // Check for new calls in the history (cache buster added)
-      const res = await fetch(API_BASE + '/public/historico?t=' + new Date().getTime());
+      const res = await fetch(API_BASE + '/public/historico?t=' + Date.now());
+      if (!res.ok) return;
       const historico = await res.json();
 
+      // Sempre atualiza o ticker
+      if (historico.length > 0) updateTicker(historico);
+
+      // Na primeira carga, apenas registra o ID mais recente sem chamar
+      if (!initialLoadDone) {
+        if (historico.length > 0) lastCallId = historico[0].id;
+        initialLoadDone = true;
+        return;
+      }
+
+      // Verifica se há chamada nova
       if (historico.length > 0) {
         const latest = historico[0];
-        const latestId = latest.id;
-
-        if (!isFirstFetch && latestId > lastHistoricoId) {
-          // New call detected!
-          showCall(latest, false);
+        if (latest.id > lastCallId) {
+          lastCallId = latest.id;
+          showCall(latest);
         }
-
-        lastHistoricoId = latestId;
-        updateTicker(historico);
       }
-      isFirstFetch = false;
-    } catch (e) {
-      // Silently fail - display should never crash
-    }
+    } catch (e) { /* não travar o painel */ }
   }
 
-  // ---- Utils ----
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.appendChild(document.createTextNode(text || ''));
-    return div.innerHTML;
+  /* ==========================================
+     OVERLAY DE ÁUDIO (política do navegador)
+  ========================================== */
+  function initOverlay() {
+    if (!elOverlay) return;
+    elOverlay.addEventListener('click', () => {
+      audioUnlocked = true;
+      hide(elOverlay);
+      // Tenta desmutar YT
+      if (ytPlayer && ytPlayer.unMute) {
+        ytPlayer.unMute();
+        ytPlayer.setVolume(100);
+      }
+      // Unlock speechSynthesis
+      if ('speechSynthesis' in window) {
+        const silent = new SpeechSynthesisUtterance('');
+        speechSynthesis.speak(silent);
+      }
+    });
   }
 
-  function formatTime(ts) {
+  /* ==========================================
+     SOCKET.IO (recebe evento instantâneo)
+  ========================================== */
+  function initSocket() {
+    if (typeof io === 'undefined') return;
+    const socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
+
+    socket.on('connect', () => console.log('Socket conectado'));
+
+    socket.on('update_historico', () => {
+      // Evento recebido → faz poll imediato para obter dados
+      poll();
+    });
+
+    socket.on('chamar_novamente', (data) => {
+      showCall(data); // recall sem verificar ID
+    });
+
+    socket.on('youtube_update', (data) => {
+      applyYouTubeUrl(data.url || '');
+    });
+
+    socket.on('tts_update', (data) => {
+      ttsConfig = data;
+    });
+  }
+
+  /* ==========================================
+     UTILITÁRIOS
+  ========================================== */
+  function esc(t) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(t || ''));
+    return d.innerHTML;
+  }
+  function fmtTime(ts) {
     if (!ts) return '--:--';
-    return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const d = new Date(ts);
+    if (isNaN(d)) return '--:--';
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
-  // ---- Particles ----
+  /* ==========================================
+     PARTICLES
+  ========================================== */
   function initParticles() {
-    const container = $('.particles');
-    if (!container) return;
+    const c = $('.particles');
+    if (!c) return;
     for (let i = 0; i < 30; i++) {
       const p = document.createElement('div');
       p.className = 'particle';
       p.style.left = Math.random() * 100 + '%';
       p.style.animationDuration = (8 + Math.random() * 12) + 's';
-      p.style.animationDelay = Math.random() * 8 + 's';
-      container.appendChild(p);
+      p.style.animationDelay    = Math.random() * 8 + 's';
+      c.appendChild(p);
     }
   }
 
-  // ---- Init ----
+  /* ==========================================
+     INICIALIZAÇÃO
+  ========================================== */
   function init() {
     initParticles();
+    initOverlay();
+    initSocket();
     updateClock();
     setInterval(updateClock, 1000);
     loadYouTube();
     loadTTSConfig();
 
-    const overlay = document.getElementById('start-audio-overlay');
-    if (overlay) {
-      overlay.addEventListener('click', function() {
-        this.hidden = true;
-        // unlock audio
-        if ('speechSynthesis' in window) {
-           const msg = new SpeechSynthesisUtterance("");
-           speechSynthesis.speak(msg);
-        }
-        if (ytPlayer && ytPlayer.unMute) {
-           ytPlayer.unMute();
-           ytPlayer.setVolume(100);
-        }
-      });
-    }
+    // Primeira carga: registra estado atual sem disparar chamada
+    poll();
 
-    // Always load initial history on boot
-    pollForUpdates();
-
-    // Use WebSocket instead of polling
-    if (typeof SGF !== 'undefined' && SGF.onSocketEvent) {
-      SGF.onSocketEvent('update_historico', pollForUpdates);
-      SGF.onSocketEvent('chamar_novamente', (data) => {
-        showCall(data, true); // true = recall, plays ding-dong only
-      });
-      SGF.onSocketEvent('youtube_update', (data) => {
-        updateYouTubeUrl(data.url);
-      });
-      SGF.onSocketEvent('tts_update', (data) => {
-        ttsConfig = data;
-      });
-    } else {
-      setInterval(pollForUpdates, 3000);
-    }
+    // Polling de segurança a cada 5s (fallback para quando socket falha)
+    setInterval(poll, 5000);
   }
 
   if (document.readyState === 'loading') {
