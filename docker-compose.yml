@@ -5,7 +5,7 @@ services:
     build: .
     container_name: sgf-jfal
     ports:
-      - "3000:3000"
+      - "3030:3000"
     environment:
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET:-mude_esta_senha_em_producao}
