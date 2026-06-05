@@ -8,7 +8,11 @@ services:
       - "3030:3000"
     environment:
       - NODE_ENV=production
-      - JWT_SECRET=${JWT_SECRET:-mude_esta_senha_em_producao}
+      - JWT_SECRET=${JWT_SECRET:-sgf_jfal_secret_2024}
+      - ADMIN_PASS=${ADMIN_PASS:-admin123}
+      - RECEP_PASS=${RECEP_PASS:-recepcao123}
+      - PERITO_PASS=${PERITO_PASS:-perito123}
+      - CONCIL_PASS=${CONCIL_PASS:-conciliador123}
     volumes:
       - sgf_data:/app/backend/data
     restart: unless-stopped
